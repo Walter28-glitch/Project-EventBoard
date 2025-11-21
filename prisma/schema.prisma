@@ -1,0 +1,89 @@
+datasource db {
+provider = "mysql"
+url = env("DATABASE_URL")
+}
+
+generator client {
+provider = "prisma-client-js"
+}
+
+enum RSVPStatus {
+GOING
+INTERESTED
+CANCELED
+}
+
+model User {
+id Int @id @default(autoincrement())
+email String @unique
+passwordHash String
+name String
+createdAt DateTime @default(now())
+profile Profile?
+events Event[] @relation("OrganizedEvents")
+comments Comment[]
+rsvps RSVP[]
+}
+
+model Profile {
+id Int @id @default(autoincrement())
+userId Int @unique
+avatarUrl String?
+bio String? @db.VarChar(255)
+user User @relation(fields: [userId], references: [id])
+}
+
+model Category {
+id Int @id @default(autoincrement())
+name String @unique
+events Event[]
+}
+
+model Venue {
+id Int @id @default(autoincrement())
+name String @unique
+address String
+capacity Int
+events Event[]
+}
+
+model Event {
+id Int @id @default(autoincrement())
+organizerId Int
+title String
+description String
+startAt DateTime
+endAt DateTime
+categoryId Int
+venueId Int
+posterUrl String?
+createdAt DateTime @default(now())
+
+organizer User @relation("OrganizedEvents", fields: [organizerId], references: [id])
+category Category @relation(fields: [categoryId], references: [id])
+venue Venue @relation(fields: [venueId], references: [id])
+comments Comment[]
+rsvps RSVP[]
+}
+
+model Comment {
+id Int @id @default(autoincrement())
+userId Int
+eventId Int
+content String
+createdAt DateTime @default(now())
+user User @relation(fields: [userId], references: [id])
+event Event @relation(fields: [eventId], references: [id])
+@@index([eventId])
+}
+
+model RSVP {
+id Int @id @default(autoincrement())
+userId Int
+eventId Int
+status RSVPStatus @default(GOING)
+createdAt DateTime @default(now())
+user User @relation(fields: [userId], references: [id])
+event Event @relation(fields: [eventId], references: [id])
+@@unique([userId, eventId])
+}
