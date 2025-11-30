@@ -1,9 +1,11 @@
+export const dynamic = 'force-dynamic';
+import Link from 'next/link';
 import prisma from '@/app/lib/prisma';
 
 export default async function UsersPage() {
   const users = await prisma.user.findMany({
     orderBy: { name: 'asc' },
-    select: { id: true, name: true, profile: { select: { avatarUrl: true } } }
+    select: { id: true, name: true, profile: { select: { avatarUrl: true } } },
   });
 
   return (
@@ -13,13 +15,20 @@ export default async function UsersPage() {
         <div>No users yet.</div>
       ) : (
         <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 8 }}>
-          {users.map(u => (
+          {users.map((u) => (
             <li key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              {u.profile?.avatarUrl
-                ? <img src={u.profile.avatarUrl} alt="" style={{ width: 32, height: 32, borderRadius: 16, objectFit: 'cover' }} />
-                : <span style={{ width: 32, height: 32, borderRadius: 16, background: '#eee', display: 'inline-block' }} />
-              }
-              <a href={`/users/${u.id}`}>{u.name}</a>
+              {u.profile?.avatarUrl ? (
+                <img
+                  src={u.profile.avatarUrl}
+                  alt=""
+                  style={{ width: 32, height: 32, borderRadius: 16, objectFit: 'cover' }}
+                />
+              ) : (
+                <span
+                  style={{ width: 32, height: 32, borderRadius: 16, background: '#eee', display: 'inline-block' }}
+                />
+              )}
+              <Link href={`/users/${u.id}`}>{u.name}</Link>
             </li>
           ))}
         </ul>
