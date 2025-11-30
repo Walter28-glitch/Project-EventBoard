@@ -1,42 +1,31 @@
+export const dynamic = 'force-dynamic';
+import Link from 'next/link';
 import prisma from '@/app/lib/prisma';
-import { notFound } from 'next/navigation';
 
-const formatDate = (iso) => {
+const fmt = (iso) => {
   try {
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric', month: 'short', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', hour12: false,
-      timeZone: 'UTC'
+      hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC',
     }).format(new Date(iso));
-  } catch {
-    return iso;
-  }
+  } catch { return iso; }
 };
 
 export default async function UserProfilePage({ params }) {
   const id = Number(params.id);
-  if (!id) notFound();
+  if (!Number.isInteger(id) || id <= 0) return <main style={{ padding: 24 }}>Invalid user id.</main>;
 
   const user = await prisma.user.findUnique({
     where: { id },
     select: {
-      id: true,
-      name: true,
-
+      id: true, name: true,
       profile: { select: { avatarUrl: true, bio: true } },
       events: { orderBy: { startAt: 'desc' }, select: { id: true, title: true, startAt: true } },
-      comments: {
-        orderBy: { createdAt: 'desc' },
-        select: { id: true, content: true, createdAt: true, event: { select: { id: true, title: true } } }
-      },
-      rsvps: {
-        orderBy: { createdAt: 'desc' },
-        select: { status: true, createdAt: true, event: { select: { id: true, title: true, startAt: true } } }
-      }
-    }
+      comments: { orderBy: { createdAt: 'desc' }, select: { id: true, content: true, createdAt: true, event: { select: { id: true, title: true } } } },
+      rsvps: { orderBy: { createdAt: 'desc' }, select: { status: true, createdAt: true, event: { select: { id: true, title: true, startAt: true } } } },
+    },
   });
-
-  if (!user) notFound();
+  if (!user) return <main style={{ padding: 24 }}>User not found.</main>;
 
   return (
     <main style={{ padding: 24, display: 'grid', gap: 16 }}>
@@ -53,55 +42,28 @@ export default async function UserProfilePage({ params }) {
 
       <section>
         <h2>Organized Events</h2>
-        {user.events.length === 0 ? (
-          <div>No events organized yet.</div>
-        ) : (
-          <ul>
-            {user.events.map(ev => (
-              <li key={ev.id}>
-                <a href="/events" style={{ textDecoration: 'underline' }}>{ev.title}</a>
-                <small style={{ color: '#666' }}> ({formatDate(ev.startAt)})</small>
-              </li>
-            ))}
-          </ul>
+        {user.events.length === 0 ? <div>No events organized yet.</div> : (
+          <ul>{user.events.map(ev => <li key={ev.id}>{ev.title} <small style={{ color: '#666' }}>({fmt(ev.startAt)})</small></li>)}</ul>
         )}
       </section>
 
       <section>
         <h2>Recent Comments</h2>
-        {user.comments.length === 0 ? (
-          <div>No comments yet.</div>
-        ) : (
-          <ul>
-            {user.comments.slice(0, 10).map(c => (
-              <li key={c.id}>
-                {c.content} on <strong>{c.event.title}</strong>
-                <small style={{ color: '#666' }}> ({formatDate(c.createdAt)})</small>
-              </li>
-            ))}
-          </ul>
+        {user.comments.length === 0 ? <div>No comments yet.</div> : (
+          <ul>{user.comments.slice(0, 10).map(c => <li key={c.id}>{c.content} on <strong>{c.event.title}</strong> <small style={{ color: '#666' }}>({fmt(c.createdAt)})</small></li>)}</ul>
         )}
       </section>
 
       <section>
         <h2>RSVPs</h2>
-        {user.rsvps.length === 0 ? (
-          <div>No RSVPs yet.</div>
-        ) : (
-          <ul>
-            {user.rsvps.map((r, i) => (
-              <li key={i}>
-                {r.status} to <strong>{r.event.title}</strong>
-                <small style={{ color: '#666' }}> ({formatDate(r.event.startAt)})</small>
-              </li>
-            ))}
-          </ul>
+        {user.rsvps.length === 0 ? <div>No RSVPs yet.</div> : (
+          <ul>{user.rsvps.map((r, i) => <li key={i}>{r.status} to <strong>{r.event.title}</strong> <small style={{ color: '#666' }}>({fmt(r.event.startAt)})</small></li>)}</ul>
         )}
       </section>
 
-      <a href="/users" style={{ padding: '6px 12px', border: '1px solid #ccc', borderRadius: 6, background: '#f8f8f8', textDecoration: 'none', width: 'max-content' }}>
+      <Link href="/users" style={{ padding: '6px 12px', border: '1px solid #ccc', borderRadius: 6, textDecoration: 'none', width: 'max-content' }}>
         Back to Users
-      </a>
+      </Link>
     </main>
   );
 }
