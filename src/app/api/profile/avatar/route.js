@@ -5,7 +5,7 @@ import prisma from '@/app/lib/prisma';
 import path from 'path';
 import fs from 'fs/promises';
 
-export const runtime = 'nodejs'; // allow fs
+export const runtime = 'nodejs';
 
 export async function POST(req) {
   const token = cookies().get('token')?.value;
@@ -18,23 +18,19 @@ export async function POST(req) {
     return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
   }
 
-  const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-  if (file.type && !allowed.includes(file.type)) {
-    return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 });
+  let avatarUrl = null;
+  if (process.env.VERCEL) {
+    avatarUrl = null;
+  } else {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const safeName = String(file.name).replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    const filename = `${Date.now()}-${safeName}`;
+    const dir = path.join(process.cwd(), 'public', 'uploads', 'avatars');
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(path.join(dir, filename), buffer);
+    avatarUrl = `/uploads/avatars/${filename}`;
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const safeName = String(file.name).replace(/[^a-zA-Z0-9.\-_]/g, '_');
-  const filename = `${Date.now()}-${safeName}`;
-  const dir = path.join(process.cwd(), 'public', 'uploads', 'avatars');
-  await fs.mkdir(dir, { recursive: true });
-  await fs.writeFile(path.join(dir, filename), buffer);
-  const avatarUrl = `/uploads/avatars/${filename}`;
-
-  await prisma.profile.update({
-    where: { userId: auth.id },
-    data: { avatarUrl },
-  });
-
+  await prisma.profile.update({ where: { userId: auth.id }, data: { avatarUrl } });
   return NextResponse.json({ avatarUrl }, { status: 201 });
 }
