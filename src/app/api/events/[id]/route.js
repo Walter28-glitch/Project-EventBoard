@@ -7,26 +7,22 @@ import path from 'path';
 
 export const runtime = 'nodejs';
 
-export async function DELETE(req, { params }) {
+export async function GET(_req, { params }) {
+  return NextResponse.json({ ok: true, id: params.id });
+}
+
+export async function DELETE(_req, { params }) {
   const token = cookies().get('token')?.value;
   if (!token) return NextResponse.json({ error: 'Unauthorized (no cookie)' }, { status: 401 });
   const auth = verifySession(token);
   if (!auth) return NextResponse.json({ error: 'Unauthorized (bad token)' }, { status: 401 });
 
   const eventId = Number(params.id);
-  if (!Number.isInteger(eventId) || eventId <= 0) {
-    return NextResponse.json({ error: 'Invalid event id' }, { status: 400 });
-  }
+  if (!Number.isInteger(eventId) || eventId <= 0) return NextResponse.json({ error: 'Invalid event id' }, { status: 400 });
 
-  const ev = await prisma.event.findUnique({
-    where: { id: eventId },
-    select: { id: true, organizerId: true, posterUrl: true },
-  });
-
+  const ev = await prisma.event.findUnique({ where: { id: eventId }, select: { id: true, organizerId: true, posterUrl: true } });
   if (!ev) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  if (ev.organizerId !== auth.id) {
-    return NextResponse.json({ error: 'Forbidden: not your event' }, { status: 403 });
-  }
+  if (ev.organizerId !== auth.id) return NextResponse.json({ error: 'Forbidden: not your event' }, { status: 403 });
 
   await prisma.$transaction([
     prisma.comment.deleteMany({ where: { eventId } }),
@@ -34,11 +30,9 @@ export async function DELETE(req, { params }) {
     prisma.event.delete({ where: { id: eventId } }),
   ]);
 
-  if (ev.posterUrl) {
+  if (ev.posterUrl && !process.env.VERCEL) {
     const filePath = path.join(process.cwd(), 'public', ev.posterUrl.replace(/^\//, ''));
-    try {
-      await fs.unlink(filePath);
-    } catch (e) {}
+    try { await fs.unlink(filePath); } catch {}
   }
 
   return NextResponse.json({ ok: true });
