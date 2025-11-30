@@ -41,3 +41,28 @@ return (
 {user.profile?.bio && <div style={{ color: '#555' }}>{user.profile.bio}</div>}
 </div>
 </div>
+    <section>
+    <h2>Organized Events</h2>
+    {user.events.length === 0 ? <div>No events organized yet.</div> : (
+      <ul>{user.events.map(ev => <li key={ev.id}>{ev.title} <small style={{ color: '#666' }}>({fmt(ev.startAt)})</small></li>)}</ul>
+    )}
+  </section>
+
+  <section>
+    <h2>Recent Comments</h2>
+    {user.comments.length === 0 ? <div>No comments yet.</div> : (
+      <ul>{user.comments.slice(0, 10).map(c => <li key={c.id}>{c.content} on <strong>{c.event.title}</strong> <small style={{ color: '#666' }}>({fmt(c.createdAt)})</small></li>)}</ul>
+    )}
+  </section>
+
+  <section>
+    <h2>RSVPs</h2>
+    {user.rsvps.length === 0 ? <div>No RSVPs yet.</div> : (
+      <ul>{user.rsvps.map((r, i) => <li key={i}>{r.status} to <strong>{r.event.title}</strong> <small style={{ color: '#666' }}>({fmt(r.event.startAt)})</small></li>)}</ul>
+    )}
+  </section>
+
+  <Link href="/users" style={{ padding: '6px 12px', border: '1px solid #ccc', borderRadius: 6, textDecoration: 'none', width: 'max-content' }}>
+    Back to Users
+  </Link>
+</main>
